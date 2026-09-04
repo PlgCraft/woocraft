@@ -1,0 +1,56 @@
+{
+  "name": "woocraft",
+  "version": "0.1.0",
+  "description": "Build tooling for WooCommerce extensions: scaffold a PSR-4 plugin with a Vite + Tailwind admin UI, then lint / stan / build / package it, phpcs & phpstan config owned by the CLI.",
+  "type": "module",
+  "bin": {
+    "woocraft": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "template",
+    "assets"
+  ],
+  "keywords": [
+    "woocommerce",
+    "wordpress",
+    "plugin",
+    "extension",
+    "scaffold",
+    "generator",
+    "boilerplate",
+    "vite",
+    "tailwind",
+    "phpcs",
+    "phpstan"
+  ],
+  "license": "MIT",
+  "author": "PlgCraft",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx src/index.ts",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "kleur": "^4.1.5",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.3",
+    "@types/node": "^22.20.1",
+    "@types/prompts": "^2.4.9",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
