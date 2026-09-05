@@ -6,6 +6,7 @@ import { cmdLint } from './cmd/lint.js';
 import { cmdLintFix } from './cmd/lintFix.js';
 import { cmdNew } from './cmd/new.js';
 import { cmdStan } from './cmd/stan.js';
+import { die } from './exec.js';
 
 type Handler = (rest: string[]) => Promise<void>;
 
@@ -27,8 +28,7 @@ export async function runCli(argv: string[]): Promise<void> {
 
   const handler = COMMANDS[first];
   if (!handler) {
-    printHelp();
-    return;
+    die(`Unknown command: "${first}"\nRun \`woocraft help\` to see the available commands.`);
   }
 
   await handler(rest);
@@ -54,7 +54,6 @@ function printHelp(): void {
     woocraft plugin-check [--path <wp>] deploy + run wp plugin check
     woocraft pot                        regenerate languages/<slug>.pot
     woocraft clean                      remove dist/
-    woocraft hooks                      install the pre-commit hook
 
   ${kleur.dim('`deploy` / `plugin-check` deploy into a local WordPress install (with')}
   ${kleur.dim('WooCommerce active). `woocraft new` asks for the path; it is saved')}
