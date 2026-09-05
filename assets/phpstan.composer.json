@@ -1,0 +1,11 @@
+{
+    "name": "woocraft/phpstan-tooling",
+    "description": "Isolated PHPStan tooling managed by woocraft: the WordPress rules extension plus WordPress and WooCommerce stubs. PHPStan itself is fetched as a phar (not a Composer dep) so a slow or blocked GitHub connection can't wedge the whole install. Regenerated when versions change; safe to delete.",
+    "require": {
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "php-stubs/woocommerce-stubs": "^9.0"
+    },
+    "replace": {
+        "phpstan/phpstan": "*"
+    }
+}

@@ -1,0 +1,21 @@
+{
+    "name": "{{composerName}}",
+    "description": "{{descriptionJson}}",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">={{requiresPHP}}"
+    },
+    "autoload": {
+        "psr-4": {
+            "{{namespaceJson}}\\": "src/"
+        },
+        "files": [
+            "src/Constants.php"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

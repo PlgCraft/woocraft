@@ -1,9 +1,10 @@
 import kleur from 'kleur';
+import { cmdNew } from './cmd/new.js';
 
 type Handler = (rest: string[]) => Promise<void>;
 
 const COMMANDS: Record<string, Handler> = {
-  new: async (rest) => {console.log(rest)},
+  new: cmdNew,
 };
 
 export async function runCli(argv: string[]): Promise<void> {
@@ -19,9 +20,8 @@ export async function runCli(argv: string[]): Promise<void> {
     return;
   }
 
-  await handler(rest)
+  await handler(rest);
 }
-
 
 function printHelp(): void {
   console.log(`

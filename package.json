@@ -4,7 +4,7 @@
   "description": "Build tooling for WooCommerce extensions: scaffold a PSR-4 plugin with a Vite + Tailwind admin UI, then lint / stan / build / package it, phpcs & phpstan config owned by the CLI.",
   "type": "module",
   "bin": {
-    "woocraft": "dist/cli.js"
+    "woocraft": "dist/index.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -33,6 +33,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "postbuild": "node -e \"require('fs').chmodSync('dist/index.js', 0o755)\"",
     "typecheck": "tsc --noEmit",
     "dev": "tsx src/index.ts",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",

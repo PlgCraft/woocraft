@@ -1,0 +1,7 @@
+{
+    "name": "woocraft/qit-tooling",
+    "description": "Isolated WooCommerce QIT CLI managed by woocraft — the Marketplace quality tests (security, phpstan, plugin-check, activation, PHP compatibility, …). Opt-in: only installed when you run `woocraft qit`. Regenerated when the version changes; safe to delete.",
+    "require": {
+        "woocommerce/qit-cli": "^1.3"
+    }
+}

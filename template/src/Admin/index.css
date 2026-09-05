@@ -1,0 +1,128 @@
+/*
+ * This stylesheet is enqueued inside wp-admin, so it must not restyle
+ * WordPress's own chrome (admin menu, toolbar, notices).
+ *
+ *  - Tailwind's Preflight (global element reset) is NOT imported. A
+ *    scoped equivalent is applied under #{{rootId}} further down.
+ *  - Theme tokens, @theme and utilities are safe to load globally: they
+ *    define things, they don't apply them to elements.
+ */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+}
+
+/* plgCraft palette: deep indigo + rose. Swap these to rebrand. */
+:root {
+  --background: oklch(0.99 0.003 300);
+  --foreground: oklch(0.24 0.03 292);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.03 292);
+  --border: oklch(0.91 0.006 300);
+  --muted: oklch(0.965 0.004 300);
+  --muted-foreground: oklch(0.53 0.02 292);
+  --primary: oklch(0.46 0.13 293);
+  --primary-foreground: oklch(0.99 0.002 300);
+  --accent: oklch(0.72 0.13 8);
+  --accent-foreground: oklch(0.99 0.002 300);
+  --ring: oklch(0.46 0.13 293);
+  --radius: 0.625rem;
+}
+
+/*
+ * Scoped Preflight. Everything here is confined to #{{rootId}} so
+ * WordPress admin chrome outside the app is untouched.
+ */
+@layer base {
+  #{{rootId}} {
+    color: var(--foreground);
+    font-family:
+      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell,
+      'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  #{{rootId}},
+  #{{rootId}} *,
+  #{{rootId}} *::before,
+  #{{rootId}} *::after {
+    box-sizing: border-box;
+    border: 0 solid var(--border);
+    margin: 0;
+  }
+
+  #{{rootId}} :where(h1, h2, h3, h4, h5, h6) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  #{{rootId}} :where(a) {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  #{{rootId}} :where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+  }
+
+  #{{rootId}} button:not(:disabled),
+  #{{rootId}} [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  #{{rootId}} :where(code) {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  }
+
+  #{{rootId}} :where(img, svg, video, canvas) {
+    display: block;
+    max-width: 100%;
+  }
+}
+
+@layer components {
+  /* The live-status dot's outer ring. */
+  #{{rootId}} .wcf-ping::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: currentColor;
+    animation: wcf-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+}
+
+@keyframes wcf-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  75%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}

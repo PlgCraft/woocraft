@@ -1,0 +1,12 @@
+{
+    "name": "woocraft/phpcs-tooling",
+    "description": "Isolated PHP_CodeSniffer tooling managed by woocraft. Regenerated when versions change; safe to delete.",
+    "require": {
+        "woocommerce/woocommerce-sniffs": "^1.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
