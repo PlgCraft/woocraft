@@ -92,10 +92,16 @@ function isPublished(name: string, version: string): boolean {
   try {
     const out = execFileSync('npm', ['view', `${name}@${version}`, 'version'], {
       encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
     }).trim();
     return out.length > 0;
-  } catch {
-    return false;
+  } catch (err) {
+    // A confirmed 404 means this version genuinely isn't on the registry
+    // yet — safe to pin a local file: dependency instead. Anything else
+    // (offline, a registry hiccup, ...) is ambiguous, so assume it IS
+    // published rather than risk baking a one-off local path into the
+    // new project's package.json over a transient network error.
+    const stderr = err && typeof err === 'object' && 'stderr' in err ? String((err as { stderr?: unknown }).stderr) : '';
+    return !stderr.includes('E404');
   }
 }

@@ -6,13 +6,22 @@
   "bin": {
     "woocraft": "dist/index.js"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cli.js",
+  "types": "dist/cli.d.ts",
   "files": [
     "dist",
     "template",
-    "assets"
+    "assets",
+    "COMMANDS.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PlgCraft/woocraft.git"
+  },
+  "bugs": {
+    "url": "https://github.com/PlgCraft/woocraft/issues"
+  },
+  "homepage": "https://github.com/PlgCraft/woocraft#readme",
   "keywords": [
     "woocommerce",
     "wordpress",
@@ -50,8 +59,5 @@
     "@types/prompts": "^2.4.9",
     "tsx": "^4.19.0",
     "typescript": "^5.6.3"
-  },
-  "allowScripts": {
-    "esbuild@0.28.2": true
   }
 }

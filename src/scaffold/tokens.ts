@@ -28,8 +28,9 @@ export type Tokens = Record<string, string>;
 
 const WOOCRAFT_VERSION: string = (() => {
   try {
+    // dist/scaffold/tokens.js -> dist/scaffold -> dist -> package root.
     const pkg = JSON.parse(
-      readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8'),
+      readFileSync(fileURLToPath(new URL('../../package.json', import.meta.url)), 'utf8'),
     );
     return typeof pkg.version === 'string' ? pkg.version : '0.0.0';
   } catch {
