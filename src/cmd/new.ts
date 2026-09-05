@@ -72,7 +72,7 @@ export async function cmdNew(args: string[]): Promise<void> {
   const installed = install ? await setupProject(targetDir, consoleReporter) : false;
 
   // Deploy into the WordPress install the user pointed us at.
-  if (answers.wpPath) deployToWordPress(targetDir, answers.wpPath, consoleReporter);
+  if (answers.wpPath) await deployToWordPress(targetDir, answers.wpPath, consoleReporter);
 
   printNextSteps({ dirName, installed });
 }
@@ -255,11 +255,11 @@ function printNextSteps({ dirName, installed }: { dirName: string; installed: bo
   }
   console.log(kleur.bold('  Commands') + kleur.dim('  (from the project root)\n'));
   console.log(
-    '    npm run deploy                     ' + kleur.dim('check + build + deploy into your WordPress'),
+    '    npm run deploy                  ' + kleur.dim('check + pot + build + deploy + verify into your WordPress'),
   );
-  console.log('    npm run lint · stan · check     ' + kleur.dim('phpcs / phpstan (config owned by woocraft)'));
-  console.log('    npm run build                   ' + kleur.dim('check + UI build + dist/ zip'));
-  console.log('    npm run build:app · plugin-check · pot · clean');
+  console.log('    npm run lint · stan · check   ' + kleur.dim('phpcs / phpstan (config owned by woocraft)'));
+  console.log('    npm run build                 ' + kleur.dim('deploy + verify, then package dist/<slug>.zip'));
+  console.log('    npm run build:app · pot · qit');
   console.log('');
   console.log(
     kleur.dim(

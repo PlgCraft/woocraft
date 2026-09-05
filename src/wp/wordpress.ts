@@ -2,10 +2,11 @@ import { join } from 'node:path';
 
 import prompts from 'prompts';
 
-import { die, has, run, sh, tryCapture } from '../exec.js';
+import { die, run, sh, tryCapture } from '../exec.js';
 import type { Project } from '../project.js';
 import type { Reporter } from '../report.js';
 import { readSettings, rememberWpPath } from '../settings.js';
+import { ensureWpCli } from '../toolchain.js';
 import { expandTilde, isWordPressWithWoo, wpRoot } from './wppath.js';
 
 export type WpTarget = {
@@ -13,7 +14,7 @@ export type WpTarget = {
   root: string;
   /** <root>/wp-content/plugins/<slug> : where the plugin is mirrored */
   pluginDir: string;
-  /** siteurl option, if WP-CLI is available to read it */
+  /** siteurl option, read via our own wp-cli.phar, if available */
   siteUrl?: string;
 };
 
@@ -23,6 +24,7 @@ export type WpTarget = {
 export async function resolveWordPress(
   project: Project,
   opts: { path?: string; interactive: boolean },
+  report: Reporter,
 ): Promise<WpTarget> {
   const saved = readSettings().wpPaths?.[project.root];
   const candidate = opts.path ?? saved;
@@ -51,41 +53,45 @@ export async function resolveWordPress(
 
   rememberWpPath(project.root, root);
 
+  // Best-effort only — this is a convenience link shown at the end, not
+  // worth failing the whole command over.
   let siteUrl: string | undefined;
-  if (has('wp')) {
+  try {
+    const wpCli = await ensureWpCli(project, report);
     siteUrl =
-      tryCapture('wp', [
-        'option', 'get', 'siteurl',
+      tryCapture('php', [
+        wpCli, 'option', 'get', 'siteurl',
         `--path=${root}`, '--skip-plugins', '--skip-themes',
       ]) ?? undefined;
+  } catch {
+    siteUrl = undefined;
   }
 
   return { root, pluginDir: join(root, 'wp-content', 'plugins', project.slug), siteUrl };
 }
 
-export function activateInWordPress(project: Project, root: string, report: Reporter): void {
-  if (!has('wp')) {
+export async function activateInWordPress(project: Project, root: string, report: Reporter): Promise<void> {
+  let wpCli: string;
+  try {
+    wpCli = await ensureWpCli(project, report);
+  } catch {
     report({
       kind: 'info',
-      message: `Activate "${project.slug}" in wp-admin (WP-CLI not found for auto-activate).`,
+      message: `Activate "${project.slug}" in wp-admin (couldn't set up wp-cli for auto-activate).`,
     });
     return;
   }
   try {
-    run('wp', ['plugin', 'activate', project.slug, `--path=${root}`], { report });
+    run('php', [wpCli, 'plugin', 'activate', project.slug, `--path=${root}`], { report });
   } catch {
     report({ kind: 'warn', message: `could not auto-activate ${project.slug} — activate it in wp-admin.` });
   }
 }
 
-export function pluginCheckInWordPress(project: Project, root: string, report: Reporter): void {
-  if (!has('wp')) {
-    die(
-      'WP-CLI (`wp`) is not on PATH. Install it (https://wp-cli.org) and run:\n' +
-        `  wp plugin check ${project.slug} --path='${root}'`,
-    );
-  }
+export async function pluginCheckInWordPress(project: Project, root: string, report: Reporter): Promise<void> {
+  const wpCli = await ensureWpCli(project, report);
+  const wp = `php '${wpCli}'`;
   const p = `--path='${root}'`;
-  sh(`wp plugin is-installed plugin-check ${p} || wp plugin install plugin-check --activate ${p}`, { report });
-  sh(`wp plugin activate ${project.slug} ${p} >/dev/null; wp plugin check ${project.slug} ${p}`, { report });
+  sh(`${wp} plugin is-installed plugin-check ${p} || ${wp} plugin install plugin-check --activate ${p}`, { report });
+  sh(`${wp} plugin activate ${project.slug} ${p} >/dev/null; ${wp} plugin check ${project.slug} ${p}`, { report });
 }

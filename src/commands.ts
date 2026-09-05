@@ -93,6 +93,40 @@ export function generatePot(
   }
 }
 
+// `woocraft qit -- <command>` passthrough, e.g. `partner:add` or `list`.
+export function qitPassthrough(qitBin: string, projectRoot: string, args: string[], report: Reporter): void {
+  try {
+    run('php', [qitBin, ...args], { cwd: projectRoot, report });
+  } catch (err) {
+    if (isMissingBinary(err)) throw brokenToolchain('qit');
+    throw new UserError('QIT reported problems.');
+  }
+}
+
+// Runs each QIT test against `zip` in turn, continuing past a failing
+// test so one bad result doesn't hide the rest — returns the names that
+// failed (empty when everything passed).
+export function runQitTests(
+  qitBin: string,
+  projectRoot: string,
+  zip: string,
+  tests: string[],
+  extraArgs: string[],
+  report: Reporter,
+): string[] {
+  const failed: string[] = [];
+  for (const test of tests) {
+    report({ kind: 'step', label: 'QIT', detail: test });
+    try {
+      run('php', [qitBin, `run:${test}`, '--zip', zip, ...extraArgs], { cwd: projectRoot, report });
+    } catch (err) {
+      if (isMissingBinary(err)) throw brokenToolchain('qit');
+      failed.push(test);
+    }
+  }
+  return failed;
+}
+
 export function phpstanAnalyse(phpstanPhar: string, phpstanDir: string, configPath: string, report: Reporter): void {
   report({ kind: 'info', message: '==> Running PHPStan' });
   try {

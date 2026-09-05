@@ -13,10 +13,7 @@
         "check": "woocraft check",
         "build": "woocraft build",
         "qit": "woocraft qit",
-        "plugin-check": "woocraft plugin-check",
-        "pot": "woocraft pot",
-        "hooks": "woocraft hooks",
-        "clean": "woocraft clean"
+        "pot": "woocraft pot"
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.3.3",

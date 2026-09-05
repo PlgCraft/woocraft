@@ -1,16 +1,19 @@
-import kleur from 'kleur';
-
 import { buildAdminUi, composerNoDev } from '../commands.js';
 import { resolveProject } from '../project.js';
 import { consoleReporter } from '../report.js';
-import { syncPlugin } from '../wp/deploy.js';
+import { packagePlugin, syncPlugin } from '../wp/deploy.js';
 import { activateInWordPress, pluginCheckInWordPress, resolveWordPress } from '../wp/wordpress.js';
 import { parseDeployOptions } from './_common.js';
 import { cmdCheck } from './check.js';
 import { cmdPot } from './pot.js';
 
-export async function cmdDeploy(args: string[]): Promise<void> {
-  const { path, skipCheck, skipPot, skipPluginCheck } = parseDeployOptions(args);
+// A release-ready build: static checks + a fresh .pot, deployed into a
+// real WordPress install to verify it with `wp plugin check`, then
+// packaged into dist/<slug>.zip. Always runs everything — there's no
+// --no-check/--no-pot here the way `deploy` has; a release artifact
+// shouldn't skip the checks that make it releasable.
+export async function cmdBuild(args: string[]): Promise<void> {
+  const { path } = parseDeployOptions(args);
   const project = resolveProject();
 
   const target = await resolveWordPress(project, {
@@ -18,14 +21,9 @@ export async function cmdDeploy(args: string[]): Promise<void> {
     interactive: Boolean(process.stdin.isTTY),
   }, consoleReporter);
 
-  if (!skipCheck) {
-    consoleReporter({ kind: 'step', label: 'Static checks' });
-    await cmdCheck();
-  }
-
-  if (!skipPot) {
-    await cmdPot();
-  }
+  consoleReporter({ kind: 'step', label: 'Static checks' });
+  await cmdCheck();
+  await cmdPot();
 
   buildAdminUi(project, consoleReporter);
   composerNoDev(project, consoleReporter);
@@ -33,14 +31,9 @@ export async function cmdDeploy(args: string[]): Promise<void> {
   consoleReporter({ kind: 'step', label: 'Deploying', detail: target.pluginDir });
   syncPlugin(project, target.pluginDir);
   await activateInWordPress(project, target.root, consoleReporter);
+  await pluginCheckInWordPress(project, target.root, consoleReporter);
 
-  if (!skipPluginCheck) {
-    await pluginCheckInWordPress(project, target.root, consoleReporter);
-  }
+  const zipPath = await packagePlugin(project, consoleReporter);
 
-  console.log('\n  ' + kleur.green('✔') + ` ${project.slug} deployed to ${kleur.bold(target.root)}`);
-  if (target.siteUrl) {
-    console.log(`    ${kleur.cyan(`${target.siteUrl}/wp-admin/admin.php?page=${project.slug}`)}`);
-  }
-  console.log('');
+  consoleReporter({ kind: 'success', message: `Built ${zipPath}` });
 }

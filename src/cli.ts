@@ -8,6 +8,8 @@ import { cmdNew } from './cmd/new.js';
 import { cmdPot } from './cmd/pot.js';
 import { cmdStan } from './cmd/stan.js';
 import { die } from './exec.js';
+import { cmdBuild } from './cmd/build.js';
+import { cmdQit } from './cmd/qit.js';
 
 type Handler = (rest: string[]) => Promise<void>;
 
@@ -19,6 +21,8 @@ const COMMANDS: Record<string, Handler> = {
   stan: cmdStan,
   check: cmdCheck,
   pot: cmdPot,
+  build: cmdBuild,
+  qit: cmdQit,
 };
 
 export async function runCli(argv: string[]): Promise<void> {
@@ -44,18 +48,15 @@ function printHelp(): void {
     npx woocraft new [directory] [-y]   Create a new extension
 
   ${kleur.bold('In a project')} ${kleur.dim('(run from the extension root)')}
-    woocraft deploy [--path <wp>] [--no-check] [--no-pot]
-                                        check + pot + build + deploy into your local WordPress
+    woocraft deploy [--path <wp>] [--no-check] [--no-pot] [--no-plugin-check]
+                                        check + pot + build + deploy + verify into your local WordPress
     woocraft lint  ${kleur.dim('/')}  lint:fix         PHP_CodeSniffer
     woocraft stan                       PHPStan
     woocraft check                      lint + stan
-    woocraft build:app                  install UI deps + vite build
-    woocraft build                      check + build:app + dist/<slug>.zip
+    woocraft build [--path <wp>]        deploy + verify, then package dist/<slug>.zip
     woocraft qit [tests...] [--no-build]
                                         WooCommerce Marketplace tests (opt-in)
-    woocraft plugin-check [--path <wp>] deploy + run wp plugin check
     woocraft pot                        regenerate languages/<slug>.pot
-    woocraft clean                      remove dist/
 
   ${kleur.dim('`deploy` / `plugin-check` deploy into a local WordPress install (with')}
   ${kleur.dim('WooCommerce active). `woocraft new` asks for the path; it is saved')}

@@ -117,10 +117,11 @@ async function fetchFile(urls: string[], dest: string, report: Reporter): Promis
   throw new Error(errors.join('\n  '));
 }
 
-// Pre-install phpcs + phpstan (incl. the ~28 MB phpstan.phar) for the
-// project at `targetDir`, so `check` / `deploy` are fast later. Each step is
-// independently best-effort — `lint` / `stan` install lazily too if these
-// are skipped here (e.g. right after `woocraft new`).
+// Pre-install every tool (phpcs, phpstan incl. the ~28 MB phar, wp-cli,
+// QIT) for the project at `targetDir`, so nothing downloads as a surprise
+// mid-command later. Each step is independently best-effort — every
+// command that needs one of these installs it lazily too if a step here
+// was skipped or failed (e.g. no network at `woocraft new` time).
 export async function warmToolchain(targetDir: string, report: Reporter): Promise<void> {
   const project = resolveProject(targetDir);
 
@@ -137,6 +138,26 @@ export async function warmToolchain(targetDir: string, report: Reporter): Promis
       kind: 'warn',
       message: `phpstan.phar not fetched: ${err instanceof Error ? err.message.split('\n')[0] : String(err)}`,
       hint: 'It will retry on `npm run stan`, or set WOOCRAFT_PHPSTAN_PHAR.',
+    });
+  }
+
+  try {
+    await ensureWpCli(project, report);
+  } catch (err) {
+    report({
+      kind: 'warn',
+      message: `wp-cli.phar not fetched: ${err instanceof Error ? err.message.split('\n')[0] : String(err)}`,
+      hint: 'It will retry on `npm run deploy`/`pot`.',
+    });
+  }
+
+  try {
+    ensureQit(project, report);
+  } catch (err) {
+    report({
+      kind: 'warn',
+      message: `QIT tooling not installed: ${err instanceof Error ? err.message.split('\n')[0] : String(err)}`,
+      hint: 'It will retry on `npm run qit`.',
     });
   }
 }

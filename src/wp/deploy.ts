@@ -1,13 +1,17 @@
 import {
   cpSync,
+  createWriteStream,
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   unlinkSync,
 } from 'node:fs';
 import { join } from 'node:path';
+
+import archiver from 'archiver';
 
 import { die, has, run } from '../exec.js';
 import { resolveProject } from '../project.js';
@@ -20,7 +24,7 @@ const EXTRAS = ['readme.txt', 'changelog.txt', 'LICENSE', 'LICENSE.txt', 'langua
 // Mirror the freshly-scaffolded plugin into the WordPress install the user
 // pointed us at and activate it. Best-effort — a failure is reported and
 // `npm run deploy` retries.
-export function deployToWordPress(targetDir: string, wpRootDir: string, report: Reporter): void {
+export async function deployToWordPress(targetDir: string, wpRootDir: string, report: Reporter): Promise<void> {
   try {
     const project = resolveProject(targetDir);
     if (!ensurePluginBuilt(targetDir, report)) {
@@ -34,7 +38,7 @@ export function deployToWordPress(targetDir: string, wpRootDir: string, report: 
     const dest = join(wpRootDir, 'wp-content', 'plugins', project.slug);
     report({ kind: 'step', label: 'Deploying', detail: dest });
     syncPlugin(project, dest);
-    activateInWordPress(project, wpRootDir, report);
+    await activateInWordPress(project, wpRootDir, report);
     report({ kind: 'success', message: `${project.slug} deployed to ${wpRootDir}` });
   } catch (err) {
     report({
@@ -79,6 +83,74 @@ export function syncPlugin(project: Project, dest: string): void {
 
   stripAdminSource(dest);
   stripCruft(dest);
+}
+
+export async function packagePlugin(project: Project, report: Reporter): Promise<string> {
+  const version = readVersion(project);
+
+  report({ kind: 'step', label: 'Packaging', detail: `${project.slug} ${version}` });
+  const dist = join(project.root, 'dist');
+  const stage = join(dist, project.slug);
+  rmSync(dist, { recursive: true, force: true });
+  mkdirSync(stage, { recursive: true });
+
+  const shipped = [`${project.slug}.php`, 'uninstall.php', 'composer.json', 'src'];
+  for (const p of shipped) {
+    cpSync(join(project.root, p), join(stage, p), { recursive: true });
+  }
+  // Carry the lockfile into the stage (not shipped itself) so the
+  // production install below resolves the exact versions already tested,
+  // instead of re-resolving from scratch.
+  const lock = join(project.root, 'composer.lock');
+  if (existsSync(lock)) cpSync(lock, join(stage, 'composer.lock'));
+  for (const extra of EXTRAS) {
+    const src = join(project.root, extra);
+    if (existsSync(src)) cpSync(src, join(stage, extra), { recursive: true });
+  }
+
+  stripAdminSource(stage);
+  report({ kind: 'info', message: '==> Building the production Composer autoloader' });
+
+  // Installed *inside the stage copy*, not the project root — building a
+  // release zip must never touch the developer's own working `vendor/`.
+  run(
+    'composer',
+    [
+      'install',
+      '--no-dev',
+      '--optimize-autoloader',
+      '--classmap-authoritative',
+      '--no-interaction',
+      '--quiet',
+    ],
+    { cwd: stage, report },
+  );
+  rmSync(join(stage, 'composer.lock'), { force: true });
+
+  stripCruft(stage);
+
+  const zipPath = join(dist, `${project.slug}.zip`);
+  await zipDir(stage, project.slug, zipPath);
+  return zipPath;
+}
+
+function zipDir(dir: string, prefix: string, out: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const output = createWriteStream(out);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    output.on('close', () => resolve());
+    archive.on('error', reject);
+    archive.pipe(output);
+    archive.directory(dir, prefix);
+    void archive.finalize();
+  });
+}
+
+function readVersion(project: Project): string {
+  const header = readFileSync(project.pluginFile, 'utf8');
+  const m = header.match(/^[\s*]*Version:\s*(.+?)\s*$/m);
+  if (!m) die(`could not read Version from ${project.slug}.php`);
+  return m[1];
 }
 
 // Keep only AdminMenu.php + the built dist/ inside src/Admin/.
