@@ -1,10 +1,21 @@
 import kleur from 'kleur';
+
+import { cmdCheck } from './cmd/check.js';
+import { cmdDeploy } from './cmd/deploy.js';
+import { cmdLint } from './cmd/lint.js';
+import { cmdLintFix } from './cmd/lintFix.js';
 import { cmdNew } from './cmd/new.js';
+import { cmdStan } from './cmd/stan.js';
 
 type Handler = (rest: string[]) => Promise<void>;
 
 const COMMANDS: Record<string, Handler> = {
   new: cmdNew,
+  deploy: cmdDeploy,
+  lint: cmdLint,
+  'lint:fix': cmdLintFix,
+  stan: cmdStan,
+  check: cmdCheck,
 };
 
 export async function runCli(argv: string[]): Promise<void> {

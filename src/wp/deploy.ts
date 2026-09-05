@@ -19,7 +19,7 @@ const EXTRAS = ['readme.txt', 'changelog.txt', 'LICENSE', 'LICENSE.txt', 'langua
 
 // Mirror the freshly-scaffolded plugin into the WordPress install the user
 // pointed us at and activate it. Best-effort — a failure is reported and
-// `npm run dev` retries.
+// `npm run deploy` retries.
 export function deployToWordPress(targetDir: string, wpRootDir: string, report: Reporter): void {
   try {
     const project = resolveProject(targetDir);
@@ -27,7 +27,7 @@ export function deployToWordPress(targetDir: string, wpRootDir: string, report: 
       report({
         kind: 'warn',
         message: 'plugin not deployed — Composer is required to build it.',
-        hint: 'Install Composer, then run `npm run dev`.',
+        hint: 'Install Composer, then run `npm run deploy`.',
       });
       return;
     }
@@ -40,7 +40,7 @@ export function deployToWordPress(targetDir: string, wpRootDir: string, report: 
     report({
       kind: 'warn',
       message: `deploy did not finish: ${err instanceof Error ? err.message.split('\n')[0] : String(err)}`,
-      hint: 'Run `npm run dev` to retry.',
+      hint: 'Run `npm run deploy` to retry.',
     });
   }
 }

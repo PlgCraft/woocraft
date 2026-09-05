@@ -5,7 +5,7 @@
     "type": "module",
     "description": "{{descriptionJson}}",
     "scripts": {
-        "dev": "woocraft dev",
+        "deploy": "woocraft deploy",
         "build:app": "vite build --config src/Admin/vite.config.ts",
         "lint": "woocraft lint",
         "lint:fix": "woocraft lint:fix",

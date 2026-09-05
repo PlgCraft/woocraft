@@ -16,6 +16,6 @@ The rest of this folder is the admin UI — React + Vite + Tailwind v4:
 **Everything is driven from the project root** — one `package.json`, one
 `npm install`. Build with `npm run build:app`.
 
-`woocraft build` / `woocraft dev` package **only `AdminMenu.php` and
+`woocraft build` / `woocraft deploy` package **only `AdminMenu.php` and
 `dist/`** from here — the `.tsx` source and Vite config never reach the
 shipped plugin.

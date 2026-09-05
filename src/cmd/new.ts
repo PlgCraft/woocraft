@@ -253,11 +253,9 @@ function printNextSteps({ dirName, installed }: { dirName: string; installed: bo
     console.log('    composer install');
     console.log('    npm run build:app');
   }
-  console.log('    npm run hooks                   ' + kleur.dim('# pre-commit lint + stan'));
-  console.log('');
   console.log(kleur.bold('  Commands') + kleur.dim('  (from the project root)\n'));
   console.log(
-    '    npm run dev                     ' + kleur.dim('check + build + deploy into your WordPress'),
+    '    npm run deploy                     ' + kleur.dim('check + build + deploy into your WordPress'),
   );
   console.log('    npm run lint · stan · check     ' + kleur.dim('phpcs / phpstan (config owned by woocraft)'));
   console.log('    npm run build                   ' + kleur.dim('check + UI build + dist/ zip'));

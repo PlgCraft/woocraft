@@ -118,7 +118,7 @@ async function fetchFile(urls: string[], dest: string, report: Reporter): Promis
 }
 
 // Pre-install phpcs + phpstan (incl. the ~28 MB phpstan.phar) for the
-// project at `targetDir`, so `check` / `dev` are fast later. Each step is
+// project at `targetDir`, so `check` / `deploy` are fast later. Each step is
 // independently best-effort — `lint` / `stan` install lazily too if these
 // are skipped here (e.g. right after `woocraft new`).
 export async function warmToolchain(targetDir: string, report: Reporter): Promise<void> {

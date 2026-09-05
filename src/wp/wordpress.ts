@@ -33,7 +33,7 @@ export async function resolveWordPress(
     if (!opts.interactive) {
       die(
         'No WordPress path set for this project.\n' +
-          'Pass --path <path-to-wordpress>, or run `woocraft dev` in a terminal once.',
+          'Pass --path <path-to-wordpress>, or run `woocraft deploy` in a terminal once.',
       );
     }
     const { path } = await prompts({

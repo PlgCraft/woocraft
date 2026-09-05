@@ -80,7 +80,7 @@ export default function App() {
           />
           <Card
             title="Toolchain"
-            file="npm run lint · stan · build · dev · qit"
+            file="npm run lint · stan · build · deploy · qit"
             desc="phpcs / phpstan config owned by the CLI; opt-in QIT Marketplace tests."
           />
         </div>

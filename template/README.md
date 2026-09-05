@@ -39,7 +39,7 @@ config into `.woocraft/` (git-ignored) from the plugin header and
 
 `woocraft new` already ran `npm install`, `composer install`, the first UI
 build, and installed the phpcs/phpstan toolchain (incl. `phpstan.phar`) —
-so `check` / `dev` are fast from here. All that's left:
+so `check` / `deploy` are fast from here. All that's left:
 
 ```bash
 npm run hooks               # install the pre-commit check (lint + stan)
@@ -54,7 +54,7 @@ Run from the project root.
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | `check` + UI build + production autoloader, then mirror the plugin into your local WordPress and activate it. (See *Local development* below.) |
+| `npm run deploy` | `check` + UI build + production autoloader, then mirror the plugin into your local WordPress and activate it. (See *Local development* below.) |
 | `npm run build:app` | `vite build` into `src/Admin/dist/` |
 | `npm run lint` / `lint:fix` | PHP_CodeSniffer (security, DB, deprecations, PHP compat) |
 | `npm run stan` | PHPStan level 5 with WP + WooCommerce stubs |
@@ -79,7 +79,7 @@ was skipped or failed, the next `npm run stan` retries it (resumable). If
 GitHub is unreachable from your network:
 
 - point woocraft at a phar you already have: `WOOCRAFT_PHPSTAN_PHAR=/path/to/phpstan.phar npm run stan`
-- or skip the checks for now: `npm run dev -- --no-check`
+- or skip the checks for now: `npm run deploy -- --no-check`
 
 ### QIT — WooCommerce Marketplace tests
 
@@ -126,7 +126,7 @@ PHP setup, Local, Valet, …) that has **WooCommerce installed and active**.
 (`wp-load.php` + WooCommerce present), does the first deploy, and saves the
 path in `~/.config/woocraft/config.json` (per project, not committed).
 
-`npm run dev`:
+`npm run deploy`:
 
 1. runs `lint` + `stan` (add `--no-check` to skip)
 2. builds the admin UI and a production Composer autoloader
@@ -138,9 +138,9 @@ path in `~/.config/woocraft/config.json` (per project, not committed).
 Run it again after each change.
 
 ```
-npm run dev                        # deploy into the saved WordPress path
-npm run dev -- --no-check          # skip lint + stan this run
-npm run dev -- --path /path/to/wp  # deploy elsewhere (also updates the saved path)
+npm run deploy                        # deploy into the saved WordPress path
+npm run deploy -- --no-check          # skip lint + stan this run
+npm run deploy -- --path /path/to/wp  # deploy elsewhere (also updates the saved path)
 ```
 
 `npm run plugin-check` does the same deploy, then runs `wp plugin check`
