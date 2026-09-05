@@ -7,9 +7,10 @@ import { syncPlugin } from '../wp/deploy.js';
 import { activateInWordPress, resolveWordPress } from '../wp/wordpress.js';
 import { parseDeployOptions } from './_common.js';
 import { cmdCheck } from './check.js';
+import { cmdPot } from './pot.js';
 
 export async function cmdDeploy(args: string[]): Promise<void> {
-  const { path, skipCheck } = parseDeployOptions(args);
+  const { path, skipCheck, skipPot } = parseDeployOptions(args);
   const project = resolveProject();
 
   const target = await resolveWordPress(project, {
@@ -20,6 +21,10 @@ export async function cmdDeploy(args: string[]): Promise<void> {
   if (!skipCheck) {
     consoleReporter({ kind: 'step', label: 'Static checks' });
     await cmdCheck();
+  }
+
+  if (!skipPot) {
+    await cmdPot();
   }
 
   buildAdminUi(project, consoleReporter);

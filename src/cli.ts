@@ -5,6 +5,7 @@ import { cmdDeploy } from './cmd/deploy.js';
 import { cmdLint } from './cmd/lint.js';
 import { cmdLintFix } from './cmd/lintFix.js';
 import { cmdNew } from './cmd/new.js';
+import { cmdPot } from './cmd/pot.js';
 import { cmdStan } from './cmd/stan.js';
 import { die } from './exec.js';
 
@@ -17,6 +18,7 @@ const COMMANDS: Record<string, Handler> = {
   'lint:fix': cmdLintFix,
   stan: cmdStan,
   check: cmdCheck,
+  pot: cmdPot,
 };
 
 export async function runCli(argv: string[]): Promise<void> {
@@ -42,8 +44,8 @@ function printHelp(): void {
     npx woocraft new [directory] [-y]   Create a new extension
 
   ${kleur.bold('In a project')} ${kleur.dim('(run from the extension root)')}
-    woocraft deploy [--path <wp>] [--no-check]
-                                        check + build + deploy into your local WordPress
+    woocraft deploy [--path <wp>] [--no-check] [--no-pot]
+                                        check + pot + build + deploy into your local WordPress
     woocraft lint  ${kleur.dim('/')}  lint:fix         PHP_CodeSniffer
     woocraft stan                       PHPStan
     woocraft check                      lint + stan

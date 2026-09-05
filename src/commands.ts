@@ -63,6 +63,36 @@ export function phpcbfFix(phpcbfBin: string, projectRoot: string, configPath: st
   }
 }
 
+export function generatePot(
+  wpCli: string,
+  projectRoot: string,
+  pot: string,
+  slug: string,
+  textDomain: string,
+  report: Reporter,
+): void {
+  report({ kind: 'info', message: '==> Running wp i18n make-pot' });
+  try {
+    run(
+      'php',
+      [
+        wpCli,
+        'i18n',
+        'make-pot',
+        '.',
+        pot,
+        `--slug=${slug}`,
+        `--domain=${textDomain}`,
+        '--exclude=vendor,dist,node_modules,.woocraft,src/Admin/dist,src/Admin/lib',
+      ],
+      { cwd: projectRoot, report },
+    );
+  } catch (err) {
+    if (isMissingBinary(err)) throw brokenToolchain('wp-cli.phar');
+    throw new UserError('wp i18n make-pot reported problems.');
+  }
+}
+
 export function phpstanAnalyse(phpstanPhar: string, phpstanDir: string, configPath: string, report: Reporter): void {
   report({ kind: 'info', message: '==> Running PHPStan' });
   try {
@@ -89,7 +119,7 @@ function missingBinary(bin: string, hint: string): UserError {
 function brokenToolchain(bin: string): UserError {
   return new UserError(
     `${bin} could not be run — the toolchain looks broken.\n` +
-      'Delete .woocraft/tools and re-run to reinstall it.',
+      'Delete .woocraft and re-run to reinstall it.',
   );
 }
 
