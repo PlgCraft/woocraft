@@ -15,7 +15,7 @@ import archiver from 'archiver';
 
 import { die, has, run } from '../exec.js';
 import { resolveProject } from '../project.js';
-import type { Project } from '../project.js';
+import type { Project, WpEnv } from '../project.js';
 import type { Reporter } from '../report.js';
 import { activateInWordPress } from './wordpress.js';
 
@@ -24,7 +24,12 @@ const EXTRAS = ['readme.txt', 'changelog.txt', 'LICENSE', 'LICENSE.txt', 'langua
 // Mirror the freshly-scaffolded plugin into the WordPress install the user
 // pointed us at and activate it. Best-effort — a failure is reported and
 // `npm run deploy` retries.
-export async function deployToWordPress(targetDir: string, wpRootDir: string, report: Reporter): Promise<void> {
+export async function deployToWordPress(
+  targetDir: string,
+  wpRootDir: string,
+  env: WpEnv,
+  report: Reporter,
+): Promise<void> {
   try {
     const project = resolveProject(targetDir);
     if (!ensurePluginBuilt(targetDir, report)) {
@@ -38,7 +43,7 @@ export async function deployToWordPress(targetDir: string, wpRootDir: string, re
     const dest = join(wpRootDir, 'wp-content', 'plugins', project.slug);
     report({ kind: 'step', label: 'Deploying', detail: dest });
     syncPlugin(project, dest);
-    await activateInWordPress(project, wpRootDir, report);
+    await activateInWordPress(project, wpRootDir, env, report);
     report({ kind: 'success', message: `${project.slug} deployed to ${wpRootDir}` });
   } catch (err) {
     report({
@@ -66,9 +71,9 @@ function ensurePluginBuilt(targetDir: string, report: Reporter): boolean {
   return existsSync(join(targetDir, 'vendor', 'autoload.php'));
 }
 
-// Copy the plugin's shippable files into `dest` (a WordPress plugins
-// directory here; a release-zip staging dir once `woocraft build` exists)
-// and strip anything that doesn't belong in a shipped plugin.
+// Copy the plugin's shippable files into `dest` — a WordPress plugins
+// directory here (`packagePlugin` below does the same for a release zip)
+// — and strip anything that doesn't belong in a shipped plugin.
 export function syncPlugin(project: Project, dest: string): void {
   rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });

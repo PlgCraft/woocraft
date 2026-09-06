@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 
@@ -32,4 +32,26 @@ export function wpRoot(input: string): string | null {
 
 export function isWordPressWithWoo(input: string): boolean {
   return wpRoot(input) !== null;
+}
+
+// Every DevKinsta site with WooCommerce active. DevKinsta always keeps
+// its sites at ~/DevKinsta/public/<site>, so this is a plain filesystem
+// scan, not a call into DevKinsta itself.
+export function findDevKinstaSites(): string[] {
+  const base = join(homedir(), 'DevKinsta', 'public');
+  let names: string[];
+  try {
+    names = readdirSync(base);
+  } catch {
+    return [];
+  }
+  return names
+    .map((name) => join(base, name))
+    .filter((dir) => {
+      try {
+        return statSync(dir).isDirectory() && isWordPressWithWoo(dir);
+      } catch {
+        return false;
+      }
+    });
 }

@@ -10,9 +10,12 @@ Scaffolds a new extension.
 
 Without a directory, it asks for one. Without `-y`, it walks you through a
 few questions: extension name, slug, description, PHP namespace, author,
-and the path to a local WordPress install to deploy into. Each question
-has a sensible default, shown in the prompt, so pressing enter through
-all of them is a reasonable way to try it out.
+and a local WordPress install to deploy into. For that last one it asks
+which kind: a DevKinsta site (picked from what's actually on your
+machine) or a plain path to any other WordPress install (validated —
+`wp-load.php` + WooCommerce present), or you can skip it and set one up
+later. Each question has a sensible default, shown in the prompt, so
+pressing enter through all of them is a reasonable way to try it out.
 
 ```bash
 woocraft new my-extension
@@ -31,8 +34,11 @@ answered) a WordPress path, it installs dependencies, warms the toolchain
 surprise you with a download), and deploys the plugin into that
 WordPress install right away.
 
-The WordPress path is remembered per project in
-`~/.config/woocraft/config.json`, so you only have to give it once.
+The WordPress path (and which local environment it is — see below) is
+remembered as `wpTarget` in your project's own `woocraft.json`, so you
+only have to give it once. Commit `woocraft.json`; if a teammate's copy
+doesn't match their own machine, they'll get a clear message telling
+them so and a chance to set their own instead of a cryptic failure.
 
 ## `woocraft deploy [--path <wp>] [--no-check] [--no-pot] [--no-plugin-check]`
 
@@ -111,10 +117,14 @@ plugin, using WP-CLI's `i18n make-pot`.
 
 The release command. Runs everything `deploy` does (always, with no
 `--no-check`/`--no-pot`/`--no-plugin-check` shortcuts here, a release
-shouldn't skip the checks that make it releasable), then packages a
-clean copy of the plugin into `dist/<slug>.zip`: production Composer
+shouldn't skip the checks that make it releasable), packages a clean
+copy of the plugin into `dist/<slug>.zip` (production Composer
 autoloader, no dev dependencies, no test directories, no `.git`, no
-`composer.lock`, nothing that doesn't belong in a submission.
+`composer.lock`, nothing that doesn't belong in a submission), then
+runs the same QIT tests as `woocraft qit` against that zip. If QIT
+isn't set up yet (see below), `build` fails with a clear explanation
+of what's missing rather than skipping the check silently — a zip
+`build` calls done is meant to actually be ready to submit.
 
 ```bash
 npm run build
@@ -126,19 +136,23 @@ Runs the WooCommerce Marketplace's own quality tests (QIT) against your
 plugin: security, PHPStan, PHP compatibility, the WordPress.org plugin
 checker, and an activation smoke test. This is what the Marketplace
 review process itself runs, so a clean `qit` run is a strong signal
-you're ready to submit.
+you're ready to submit. `woocraft build` runs this same check
+automatically after packaging; run it on its own when you just want to
+re-test an existing zip.
 
-It's opt-in and never runs as part of `check` or `build`, because it
-needs a one-time connection to your WooCommerce.com account:
+It needs a one-time connection to your WooCommerce.com account, and
+your extension has to actually be registered there as a product before
+QIT can test it — running `qit` (standalone or via `build`) checks this
+upfront and tells you exactly what's missing if it isn't set up yet:
 
 ```bash
-npx woocraft qit -- partner:add
+npm run qit -- -- partner:add
 ```
 
 ```bash
-npm run qit                        # the configured (or default) tests
-npm run qit security plugin-check  # just these two
-npm run qit -- --no-build          # reuse the existing dist/ zip
+npm run qit                           # the configured (or default) tests
+npm run qit -- security plugin-check  # just these two
+npm run qit -- --no-build             # reuse the existing dist/ zip
 ```
 
 | Flag | What it does |
@@ -147,12 +161,17 @@ npm run qit -- --no-build          # reuse the existing dist/ zip
 | `--no-build`, `--skip-build` | Reuse the existing `dist/<slug>.zip` instead of rebuilding it first. |
 | `-- <command>` | Pass a command straight through to the QIT CLI, e.g. `partner:add` or `list`. |
 
-Configure which tests run by default, and any extra flags to pass QIT,
-in a `woocraft.json` at your project root:
+QIT tests a specific extension listing on WooCommerce.com, identified by
+its slug or ID there, not just any zip you hand it. By default this is
+your project's own slug; if that's not what it's registered under (say,
+before it's been submitted under its final name), set `sut` to override
+it. Configure that, which tests run by default, and any extra flags to
+pass QIT, in a `woocraft.json` at your project root:
 
 ```json
 {
   "qit": {
+    "sut": "my-extension-slug",
     "tests": ["security", "phpstan", "phpcompatibility", "plugin-check", "activation"],
     "args": ["--json"]
   }
@@ -160,3 +179,42 @@ in a `woocraft.json` at your project root:
 ```
 
 Commit `woocraft.json`, it's meant to travel with the project.
+
+## `woocraft.json`
+
+The one config file woocraft ever reads or writes, always at your
+project root (never inside `.woocraft/` — that's a separate, git-ignored
+cache of downloaded tools and generated phpcs/phpstan config, not
+settings). Everything in it is optional, and everything in it is meant
+to be committed:
+
+```json
+{
+  "wpTarget": { "path": "/path/to/wordpress", "env": "direct" },
+  "qit": { "sut": "my-extension-slug", "tests": [], "args": [] },
+  "slug": "my-extension",
+  "namespace": "MyExtension",
+  "constantPrefix": "MY_EXTENSION",
+  "requiresPHP": "7.4",
+  "requiresWP": "6.3",
+  "requiresWC": "8.5",
+  "phpstanLevel": 5
+}
+```
+
+- **`wpTarget`** — which local WordPress `deploy`/`build` use, and how
+  (`env` is `"direct"` for a plain path, `"devkinsta"` for a DevKinsta
+  site). Written automatically the first time you give a path; edit it
+  by hand or just run `npm run deploy` again to replace it.
+- **`qit`** — see [`woocraft qit`](#woocraft-qit-tests-no-build) above.
+- The rest override what woocraft would otherwise detect from your
+  plugin header and `composer.json` — you'd rarely need these.
+
+If you edit this file by hand and get something wrong — a typo'd key, a
+string where a list belongs, an `env` that isn't `"direct"` or
+`"devkinsta"`, invalid JSON — every command checks it first and tells
+you exactly what's wrong and how to fix it, rather than failing
+somewhere confusing later. Since it's committed, `wpTarget.path` will
+often point at a path that only exists on whoever set it up's machine;
+that's expected, not an error — you'll just be asked for your own the
+next time you deploy.

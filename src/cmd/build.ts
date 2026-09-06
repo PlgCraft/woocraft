@@ -6,12 +6,14 @@ import { activateInWordPress, pluginCheckInWordPress, resolveWordPress } from '.
 import { parseDeployOptions } from './_common.js';
 import { cmdCheck } from './check.js';
 import { cmdPot } from './pot.js';
+import { runQitChecks } from './qit.js';
 
 // A release-ready build: static checks + a fresh .pot, deployed into a
-// real WordPress install to verify it with `wp plugin check`, then
-// packaged into dist/<slug>.zip. Always runs everything — there's no
-// --no-check/--no-pot here the way `deploy` has; a release artifact
-// shouldn't skip the checks that make it releasable.
+// real WordPress install to verify it with `wp plugin check`, packaged
+// into dist/<slug>.zip, then verified again with QIT against that zip.
+// Always runs everything — there's no --no-check/--no-pot here the way
+// `deploy` has; a release artifact shouldn't skip the checks that make
+// it releasable.
 export async function cmdBuild(args: string[]): Promise<void> {
   const { path } = parseDeployOptions(args);
   const project = resolveProject();
@@ -30,10 +32,11 @@ export async function cmdBuild(args: string[]): Promise<void> {
 
   consoleReporter({ kind: 'step', label: 'Deploying', detail: target.pluginDir });
   syncPlugin(project, target.pluginDir);
-  await activateInWordPress(project, target.root, consoleReporter);
-  await pluginCheckInWordPress(project, target.root, consoleReporter);
+  await activateInWordPress(project, target.root, target.env, consoleReporter);
+  await pluginCheckInWordPress(project, target.root, target.env, consoleReporter);
 
   const zipPath = await packagePlugin(project, consoleReporter);
+  await runQitChecks(project, zipPath, consoleReporter);
 
   consoleReporter({ kind: 'success', message: `Built ${zipPath}` });
 }

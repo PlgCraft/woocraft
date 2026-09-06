@@ -48,19 +48,19 @@ function printHelp(): void {
     npx woocraft new [directory] [-y]   Create a new extension
 
   ${kleur.bold('In a project')} ${kleur.dim('(run from the extension root)')}
-    woocraft deploy [--path <wp>] [--no-check] [--no-pot] [--no-plugin-check]
+    npm run deploy -- [--path <wp>] [--no-check] [--no-pot] [--no-plugin-check]
                                         check + pot + build + deploy + verify into your local WordPress
-    woocraft lint  ${kleur.dim('/')}  lint:fix         PHP_CodeSniffer
-    woocraft stan                       PHPStan
-    woocraft check                      lint + stan
-    woocraft build [--path <wp>]        deploy + verify, then package dist/<slug>.zip
-    woocraft qit [tests...] [--no-build]
-                                        WooCommerce Marketplace tests (opt-in)
-    woocraft pot                        regenerate languages/<slug>.pot
+    npm run lint  ${kleur.dim('/')}  lint:fix         PHP_CodeSniffer
+    npm run stan                        PHPStan
+    npm run check                       lint + stan
+    npm run build -- [--path <wp>]      deploy + verify + package + QIT-verify dist/<slug>.zip
+    npm run qit -- [tests...] [--no-build]
+                                        WooCommerce Marketplace tests, standalone (also part of build)
+    npm run pot                         regenerate languages/<slug>.pot
 
-  ${kleur.dim('`deploy` / `plugin-check` deploy into a local WordPress install (with')}
-  ${kleur.dim('WooCommerce active). `woocraft new` asks for the path; it is saved')}
-  ${kleur.dim('in ~/.config/woocraft/config.json. Override per run with --path.')}
+  ${kleur.dim('`deploy` / `build` deploy into a local WordPress install (with WooCommerce')}
+  ${kleur.dim('active). `woocraft new` asks for the path; it is saved as wpTarget in')}
+  ${kleur.dim('woocraft.json (commit it). Override per run with --path.')}
   ${kleur.dim('phpcs / phpstan config is generated into .woocraft/ from the plugin')}
   ${kleur.dim('header + composer.json. Commit phpcs.xml.dist, phpstan.neon.dist, or')}
   ${kleur.dim('phpstan-baseline.neon at the project root to override.')}

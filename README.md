@@ -41,9 +41,10 @@ cd my-extension
 npm run deploy
 ```
 
-`woocraft new` asks a few questions (extension name, slug, author, the
-path to your local WordPress install) and scaffolds the plugin. Answer
-`-y` instead of the prompts to accept sensible defaults:
+`woocraft new` asks a few questions (extension name, slug, author, and a
+local WordPress install to deploy into, a DevKinsta site or any other
+path) and scaffolds the plugin. Answer `-y` instead of the prompts to
+accept sensible defaults:
 
 ```bash
 npx woocraft new my-extension -y
@@ -66,6 +67,7 @@ src/                      PSR-4 PHP, autoloaded by Composer
   Http/Routes/Hello.php    A starter REST route
   Admin/                   The admin screen: PHP menu page + a React UI
 package.json              One file, one `npm install`, all the scripts
+woocraft.json             woocraft's own config: WordPress target, QIT setup
 ```
 
 The admin screen is written in React with Vite and Tailwind, but none of
@@ -82,11 +84,12 @@ your users install is plain PHP and compiled assets, nothing else.
 | `woocraft stan` | PHPStan, configured with WordPress and WooCommerce stubs |
 | `woocraft check` | `lint` + `stan` |
 | `woocraft pot` | Regenerate the plugin's translation template |
-| `woocraft build` | Deploy, verify with `wp plugin check`, then package a release zip |
+| `woocraft build` | Deploy, verify, package a release zip, then QIT-test it |
 | `woocraft qit` | Run WooCommerce Marketplace quality tests against that zip |
 
 See [COMMANDS.md](./COMMANDS.md) for the full reference: every flag, what
-each command actually does step by step, and how to configure `qit`.
+each command actually does step by step, and how to configure `qit` and
+`woocraft.json`.
 
 ## How the toolchain works
 

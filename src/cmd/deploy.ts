@@ -32,10 +32,10 @@ export async function cmdDeploy(args: string[]): Promise<void> {
 
   consoleReporter({ kind: 'step', label: 'Deploying', detail: target.pluginDir });
   syncPlugin(project, target.pluginDir);
-  await activateInWordPress(project, target.root, consoleReporter);
+  await activateInWordPress(project, target.root, target.env, consoleReporter);
 
   if (!skipPluginCheck) {
-    await pluginCheckInWordPress(project, target.root, consoleReporter);
+    await pluginCheckInWordPress(project, target.root, target.env, consoleReporter);
   }
 
   console.log('\n  ' + kleur.green('✔') + ` ${project.slug} deployed to ${kleur.bold(target.root)}`);

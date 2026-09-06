@@ -93,7 +93,7 @@ export function generatePot(
   }
 }
 
-// `woocraft qit -- <command>` passthrough, e.g. `partner:add` or `list`.
+// `npm run qit -- -- <command>` passthrough, e.g. `partner:add` or `list`.
 export function qitPassthrough(qitBin: string, projectRoot: string, args: string[], report: Reporter): void {
   try {
     run('php', [qitBin, ...args], { cwd: projectRoot, report });
@@ -105,11 +105,15 @@ export function qitPassthrough(qitBin: string, projectRoot: string, args: string
 
 // Runs each QIT test against `zip` in turn, continuing past a failing
 // test so one bad result doesn't hide the rest — returns the names that
-// failed (empty when everything passed).
+// failed (empty when everything passed). `sut` ("system under test") is
+// the extension's slug or ID as registered on WooCommerce.com — QIT
+// tests run against that specific listing, not just any zip, so it's
+// required even though it isn't obvious from the CLI's own flags.
 export function runQitTests(
   qitBin: string,
   projectRoot: string,
   zip: string,
+  sut: string,
   tests: string[],
   extraArgs: string[],
   report: Reporter,
@@ -118,7 +122,7 @@ export function runQitTests(
   for (const test of tests) {
     report({ kind: 'step', label: 'QIT', detail: test });
     try {
-      run('php', [qitBin, `run:${test}`, '--zip', zip, ...extraArgs], { cwd: projectRoot, report });
+      run('php', [qitBin, `run:${test}`, sut, '--zip', zip, ...extraArgs], { cwd: projectRoot, report });
     } catch (err) {
       if (isMissingBinary(err)) throw brokenToolchain('qit');
       failed.push(test);

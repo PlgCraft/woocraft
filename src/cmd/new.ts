@@ -4,10 +4,10 @@ import kleur from 'kleur';
 import prompts from 'prompts';
 
 import { UserError } from '../exec.js';
+import { rememberWpTarget } from '../project.js';
 import { consoleReporter } from '../report.js';
 import { scaffoldProject, setupProject } from '../scaffold/scaffold.js';
 import type { Answers } from '../scaffold/tokens.js';
-import { rememberWpPath } from '../settings.js';
 import {
   isValidNamespace,
   isValidPluginName,
@@ -17,7 +17,7 @@ import {
   titleFromSlug,
 } from '../strings.js';
 import { deployToWordPress } from '../wp/deploy.js';
-import { isWordPressWithWoo, wpRoot } from '../wp/wppath.js';
+import { promptWpTarget } from '../wp/wordpress.js';
 
 type NewArgs = {
   dir?: string;
@@ -59,7 +59,7 @@ export async function cmdNew(args: string[]): Promise<void> {
     );
   }
 
-  if (answers.wpPath) rememberWpPath(targetDir, answers.wpPath);
+  if (answers.wpPath) rememberWpTarget(targetDir, { path: answers.wpPath, env: answers.wpEnv ?? 'direct' });
 
   console.log(
     '\n' +
@@ -72,7 +72,7 @@ export async function cmdNew(args: string[]): Promise<void> {
   const installed = install ? await setupProject(targetDir, consoleReporter) : false;
 
   // Deploy into the WordPress install the user pointed us at.
-  if (answers.wpPath) await deployToWordPress(targetDir, answers.wpPath, consoleReporter);
+  if (answers.wpPath) await deployToWordPress(targetDir, answers.wpPath, answers.wpEnv ?? 'direct', consoleReporter);
 
   printNextSteps({ dirName, installed });
 }
@@ -174,12 +174,13 @@ export async function collectAnswers(yes: boolean, dirArg?: string): Promise<Ans
     { onCancel },
   );
 
-  const wpPath = await promptWpPath();
+  const wpTarget = await promptWpTarget(consoleReporter);
 
   return {
     name: a.name,
     slug: a.slug,
-    wpPath,
+    wpPath: wpTarget?.path,
+    wpEnv: wpTarget?.env,
     description: a.description,
     namespace: a.namespace,
     vendor: a.vendor,
@@ -219,20 +220,6 @@ function answersFromDefaults(seed: string | undefined, fromSeed: string | undefi
   };
 }
 
-export async function promptWpPath(): Promise<string | undefined> {
-  const { path } = await prompts(
-    {
-      type: 'text',
-      name: 'path',
-      message: 'Path to your WordPress install' + kleur.dim('  (blank to set up later)'),
-      validate: (v: string) =>
-        !v || isWordPressWithWoo(v) ? true : 'No wp-load.php + active WooCommerce found there',
-    },
-    { onCancel },
-  );
-  return path ? wpRoot(String(path)) ?? undefined : undefined;
-}
-
 function onCancel(): never {
   throw new Error('Aborted.');
 }
@@ -258,7 +245,7 @@ function printNextSteps({ dirName, installed }: { dirName: string; installed: bo
     '    npm run deploy                  ' + kleur.dim('check + pot + build + deploy + verify into your WordPress'),
   );
   console.log('    npm run lint · stan · check   ' + kleur.dim('phpcs / phpstan (config owned by woocraft)'));
-  console.log('    npm run build                 ' + kleur.dim('deploy + verify, then package dist/<slug>.zip'));
+  console.log('    npm run build                 ' + kleur.dim('deploy + verify + package + QIT-verify dist/<slug>.zip'));
   console.log('    npm run build:app · pot · qit');
   console.log('');
   console.log(

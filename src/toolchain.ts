@@ -338,7 +338,7 @@ export function ensureQit(project: Project, report: Reporter): string {
     kind: 'info',
     message:
       '    QIT tests run on WooCommerce’s servers — connect your account once with\n' +
-      '    `woocraft qit -- partner:add` (or `npm run qit -- -- partner:add`).',
+      '    `npm run qit -- -- partner:add`.',
   });
   return qitBin;
 }
