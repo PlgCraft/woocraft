@@ -87,8 +87,17 @@ export default function App() {
 
         <footer className="mt-8 flex items-center gap-1.5 text-xs text-muted-foreground">
           <span>Scaffolded with</span>
-          <img src={logo} alt="plgCraft" className="h-4 w-4 opacity-70" />
+          <img src={logo} alt="" className="h-4 w-4 opacity-70" />
           <span className="font-medium">woocraft</span>
+          <span>by</span>
+          <a
+            href="https://plgcraft.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground hover:underline"
+          >
+            PlgCraft
+          </a>
         </footer>
       </div>
     </div>

@@ -10,8 +10,9 @@ Scaffolds a new extension.
 
 Without a directory, it asks for one. Without `-y`, it walks you through a
 few questions: extension name, slug, description, PHP namespace, author,
-and a local WordPress install to deploy into. For that last one it asks
-which kind: a DevKinsta site (picked from what's actually on your
+the PHP/WordPress/WooCommerce versions it requires, which PHPStan release
+to use, and a local WordPress install to deploy into. For that last one
+it asks which kind: a DevKinsta site (picked from what's actually on your
 machine) or a plain path to any other WordPress install (validated —
 `wp-load.php` + WooCommerce present), or you can skip it and set one up
 later. Each question has a sensible default, shown in the prompt, so
@@ -95,9 +96,11 @@ picked up automatically and merged in, so you can adopt PHPStan on an
 existing codebase without fixing every existing issue first.
 
 The PHPStan `.phar` itself (about 28 MB) is downloaded once per machine
-and cached in `~/.cache/woocraft/`, then reused by every project. If your
-network can't reach GitHub, set `WOOCRAFT_PHPSTAN_PHAR` to a copy you
-already have:
+**per version** and cached in `~/.cache/woocraft/`, then reused by every
+project pinned to it. Which version is `phpstanVersion` in `woocraft.json`
+(`woocraft new` asks, default `2.2.12`) — bump it there and the next
+`deploy`/`build` fetches and switches to it. If your network can't reach
+GitHub, set `WOOCRAFT_PHPSTAN_PHAR` to a copy you already have:
 
 ```bash
 WOOCRAFT_PHPSTAN_PHAR=/path/to/phpstan.phar npm run stan
@@ -168,6 +171,12 @@ before it's been submitted under its final name), set `sut` to override
 it. Configure that, which tests run by default, and any extra flags to
 pass QIT, in a `woocraft.json` at your project root:
 
+Leaving `qit.tests` out entirely runs the default set above. Setting it
+to an empty list (`"tests": []`) means "run none of them" — `npm run qit`
+then just says so and exits, and `npm run build` still packages the zip
+but skips QIT rather than failing. Test names given directly on the
+command line always run regardless of what's configured.
+
 ```json
 {
   "qit": {
@@ -185,36 +194,64 @@ Commit `woocraft.json`, it's meant to travel with the project.
 The one config file woocraft ever reads or writes, always at your
 project root (never inside `.woocraft/` — that's a separate, git-ignored
 cache of downloaded tools and generated phpcs/phpstan config, not
-settings). Everything in it is optional, and everything in it is meant
-to be committed:
+settings). `woocraft new` scaffolds one with real values already filled
+in — this is the full shape it understands:
 
 ```json
 {
-  "wpTarget": { "path": "/path/to/wordpress", "env": "direct" },
-  "qit": { "sut": "my-extension-slug", "tests": [], "args": [] },
+  "description": "One-line summary shown in package.json, composer.json, and readme.txt",
   "slug": "my-extension",
   "namespace": "MyExtension",
   "constantPrefix": "MY_EXTENSION",
   "requiresPHP": "7.4",
   "requiresWP": "6.3",
   "requiresWC": "8.5",
-  "phpstanLevel": 5
+  "phpstanLevel": 5,
+  "phpstanVersion": "2.2.12",
+  "versions": {
+    "0.1.0": "Initial release",
+    "0.2.0": "Add coupon stacking support"
+  },
+  "qit": { "sut": "my-extension-slug", "tests": [], "args": [] },
+  "wpTarget": { "path": "/path/to/wordpress", "env": "direct" }
 }
 ```
 
+- **`description`, `requiresPHP`, `requiresWP`, `requiresWC`** — the
+  plugin's actual metadata. Change one here and the next `deploy` or
+  `build` writes it into the plugin header, `composer.json`,
+  `package.json`, and `readme.txt` for you — edit it in one place
+  instead of four.
+- **`versions`** — the release log: each key is a version, each value its
+  one-line changelog note. **The last entry is the current, official
+  version** — the one written into the plugin header, its `_VERSION`
+  constant, `package.json`, and `readme.txt`'s `Stable tag`. Cut a
+  release by adding a new entry at the end and running `deploy` or
+  `build`; every entry that isn't already in `changelog.txt` or
+  `readme.txt`'s own Changelog section gets added there too (dated
+  today, note used verbatim), and an entry already present is left
+  exactly as it is. A key that's just a number (`"1"` instead of
+  `"1.0.0"`) is rejected — JSON key order isn't guaranteed for those, so
+  "last" wouldn't reliably mean what it should.
+- **`slug`, `namespace`, `constantPrefix`** — the exception to the above.
+  These only override what woocraft *detects* from your plugin header
+  and `composer.json` (for its own tooling — phpcs rules, the generated
+  phpstan config, and so on); they're never written back into the
+  codebase. Renaming a live plugin's slug, PHP namespace, or text domain
+  needs an actual migration, not a config edit, so woocraft won't do it
+  as a side effect of one.
+- **`phpstanLevel`** — the PHPStan strictness level `stan` runs at.
+- **`phpstanVersion`** — which PHPStan release to install (see
+  [`woocraft stan`](#woocraft-stan) above). Change it and the next
+  `deploy`/`build` fetches and switches to that version.
+- **`qit`** — see [`woocraft qit`](#woocraft-qit-tests-no-build) above.
 - **`wpTarget`** — which local WordPress `deploy`/`build` use, and how
   (`env` is `"direct"` for a plain path, `"devkinsta"` for a DevKinsta
   site). Written automatically the first time you give a path; edit it
   by hand or just run `npm run deploy` again to replace it.
-- **`qit`** — see [`woocraft qit`](#woocraft-qit-tests-no-build) above.
-- The rest override what woocraft would otherwise detect from your
-  plugin header and `composer.json` — you'd rarely need these.
 
-If you edit this file by hand and get something wrong — a typo'd key, a
-string where a list belongs, an `env` that isn't `"direct"` or
-`"devkinsta"`, invalid JSON — every command checks it first and tells
-you exactly what's wrong and how to fix it, rather than failing
-somewhere confusing later. Since it's committed, `wpTarget.path` will
+Everything here is optional — leave out anything you don't need to
+override. Since it's committed, `wpTarget.path` will
 often point at a path that only exists on whoever set it up's machine;
 that's expected, not an error — you'll just be asked for your own the
 next time you deploy.

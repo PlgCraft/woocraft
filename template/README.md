@@ -23,7 +23,7 @@ src/                      PSR-4 (namespace {{namespace}}\), autoloaded by Compos
   Admin/vite.config.ts     Builds to Admin/dist/{index.js,index.css}
   Admin/dist/              vite build output — the ONLY UI part that ships
 package.json              one file, project root — deps + `npm run` scripts
-woocraft.json             woocraft's own config (QIT settings, override detection) — commit it
+woocraft.json             woocraft's own config (release log, requirements, QIT, WordPress target) — commit it
 ```
 
 One `package.json` at the root drives everything (`npm install` once). The
@@ -64,16 +64,43 @@ Run from the project root.
 
 ### Before a release
 
-- Bump `Version:` in `{{slug}}.php` and the top line of `changelog.txt` (they must match — CI checks).
-- Bump `Tested up to:` / `WC tested up to:` in `readme.txt` to the current WordPress / WooCommerce release, or Plugin Check flags them.
+Add an entry to `versions` in `woocraft.json` — the key is the new
+version, the value its one-line changelog note:
+
+```json
+{
+  "versions": {
+    "0.1.0": "Initial release",
+    "0.2.0": "Add coupon stacking support"
+  }
+}
+```
+
+The **last** entry is the current, official version. The next `deploy`
+or `build` writes it into `{{slug}}.php`'s header and `_VERSION`
+constant, `package.json`, and `readme.txt`'s `Stable tag` — one place
+instead of four — and adds a matching entry (dated today, note used
+verbatim) to `changelog.txt` and `readme.txt`'s own Changelog section, if
+one isn't already there. An entry already present is left exactly as it
+is, so hand-editing an old one sticks.
+
+- `description` works the same way — set it once in `woocraft.json` and
+  it syncs into the plugin header, `composer.json`, `package.json`, and
+  `readme.txt`'s short description.
+- Need a different PHP / WordPress / WooCommerce requirement? Same idea —
+  set `requiresPHP` / `requiresWP` / `requiresWC` in `woocraft.json`.
+- Bump `Tested up to:` / `WC tested up to:` in `readme.txt` by hand to the
+  current WordPress / WooCommerce release, or Plugin Check flags them.
 
 ### The phpcs / phpstan toolchain
 
 `woocraft new` installs it during setup: isolated Composer tooling in
-`.woocraft/tools/`, plus `phpstan.phar` (~28 MB) fetched once per machine
-into `~/.cache/woocraft/` and reused by every project. If that download
-was skipped or failed, the next `npm run stan` retries it (resumable). If
-GitHub is unreachable from your network:
+`.woocraft/tools/`, plus `phpstan.phar` (~28 MB, version set by
+`phpstanVersion` in `woocraft.json`) fetched once per machine into
+`~/.cache/woocraft/` and reused by every project pinned to that version.
+Bump `phpstanVersion` and the next `deploy`/`build` fetches and switches
+to it. If that download was skipped or failed, the next `npm run stan`
+retries it (resumable). If GitHub is unreachable from your network:
 
 - point woocraft at a phar you already have: `WOOCRAFT_PHPSTAN_PHAR=/path/to/phpstan.phar npm run stan`
 - or skip the checks for now: `npm run deploy -- --no-check`
@@ -110,7 +137,10 @@ Marketplace slug (or ID) if that ever differs:
 }
 ```
 
-`woocraft.json` also holds any config overrides (see below) — commit it.
+Set `tests` to an empty list to turn QIT off entirely — `npm run qit`
+then just says there's nothing to run, and `npm run build` skips it
+instead of failing. Tests named directly on the command line always run
+regardless.
 
 ### Overriding the generated config
 

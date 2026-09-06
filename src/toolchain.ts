@@ -12,16 +12,19 @@ import { substitute } from './strings.js';
 
 const ASSETS = fileURLToPath(new URL('../assets', import.meta.url));
 
-const PHPSTAN_VERSION = '2.2.12';
 // PHPStan ships as a ~28 MB phar, not a Composer dependency, so a slow or
 // blocked GitHub connection can't wedge the whole install. It is fetched
-// once per machine into the user cache (resumable), then copied per
-// project. Releases CDN first (the most reliable GitHub endpoint), then
-// raw as a fallback.
-const PHPSTAN_PHAR_URLS = [
-  `https://github.com/phpstan/phpstan/releases/download/${PHPSTAN_VERSION}/phpstan.phar`,
-  `https://raw.githubusercontent.com/phpstan/phpstan/${PHPSTAN_VERSION}/phpstan.phar`,
-];
+// once per machine per version into the user cache (resumable), then
+// copied per project. Releases CDN first (the most reliable GitHub
+// endpoint), then raw as a fallback. The version itself comes from the
+// project (woocraft.json's `phpstanVersion`, DEFAULT_PHPSTAN_VERSION if
+// unset) rather than being fixed here, so a project can pin its own.
+function phpstanPharUrls(version: string): string[] {
+  return [
+    `https://github.com/phpstan/phpstan/releases/download/${version}/phpstan.phar`,
+    `https://raw.githubusercontent.com/phpstan/phpstan/${version}/phpstan.phar`,
+  ];
+}
 const WPCLI_URLS = ['https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar'];
 
 export type Paths = {
@@ -209,7 +212,7 @@ export async function ensurePhpstan(project: Project, report: Reporter): Promise
   requireBin('php', 'Install PHP 7.4+ and add it to PATH.');
   const { phpstanDir, phpstanPhar } = paths(project);
   const composerJson = asset('phpstan.composer.json');
-  const s = stamp(phpstanDir, composerJson + PHPSTAN_VERSION);
+  const s = stamp(phpstanDir, composerJson + project.phpstanVersion);
 
   const haveRules = existsSync(join(phpstanDir, 'vendor', 'szepeviktor'));
   if (haveRules && existsSync(phpstanPhar) && s.ok) return;
@@ -220,12 +223,17 @@ export async function ensurePhpstan(project: Project, report: Reporter): Promise
   // Rules + stubs are on Packagist (fast); only the phar is on GitHub.
   run('composer', ['install', '--working-dir', phpstanDir, '--no-interaction'], { report });
 
-  await ensurePhpstanPhar(phpstanPhar, report);
+  await ensurePhpstanPhar(phpstanPhar, project.phpstanVersion, report);
   s.write();
 }
 
-async function ensurePhpstanPhar(projectPhar: string, report: Reporter): Promise<void> {
-  if (isValidPhar(projectPhar)) return;
+// Installs `version` at `projectPhar`, replacing whatever's there if it's
+// a different version — this is what makes bumping `phpstanVersion` in
+// woocraft.json and re-running `deploy`/`build` actually pick up the new
+// release, instead of the stale one already on disk short-circuiting the
+// swap because it happens to still be a structurally valid phar.
+async function ensurePhpstanPhar(projectPhar: string, version: string, report: Reporter): Promise<void> {
+  if (pharVersion(projectPhar) === version) return;
 
   const local = process.env.WOOCRAFT_PHPSTAN_PHAR;
   if (local) {
@@ -235,30 +243,33 @@ async function ensurePhpstanPhar(projectPhar: string, report: Reporter): Promise
     return;
   }
 
-  // One download per machine, kept in the user cache and reused by every
-  // project. Resumable, so a dropped connection continues next run.
-  const cached = join(userCacheDir(), `phpstan-${PHPSTAN_VERSION}.phar`);
-  if (!isValidPhar(cached)) {
+  // One download per machine per version, kept in the user cache and
+  // reused by every project pinned to it. Resumable, so a dropped
+  // connection continues next run.
+  const cached = join(userCacheDir(), `phpstan-${version}.phar`);
+  if (pharVersion(cached) !== version) {
     report({
       kind: 'info',
-      message: `==> Downloading phpstan.phar ${PHPSTAN_VERSION} (~28 MB, cached for next time)`,
+      message: `==> Downloading phpstan.phar ${version} (~28 MB, cached for next time)`,
     });
     try {
-      await fetchFile(PHPSTAN_PHAR_URLS, cached, report);
+      await fetchFile(phpstanPharUrls(version), cached, report);
     } catch (err) {
       throw new UserError(
-        `Could not download phpstan.phar ${PHPSTAN_VERSION}.\n` +
+        `Could not download phpstan.phar ${version}.\n` +
           `  ${err instanceof Error ? err.message : String(err)}\n\n` +
           'The partial download is kept — just re-run to resume. Or:\n' +
+          `  • check "phpstanVersion" in woocraft.json is a real PHPStan release\n` +
           `  • download it yourself to  ${cached}\n` +
           '  • set  WOOCRAFT_PHPSTAN_PHAR=/path/to/phpstan.phar  and retry\n' +
           '  • pass  --no-check  to skip lint + stan for now',
       );
     }
-    if (!isValidPhar(cached)) {
+    if (pharVersion(cached) !== version) {
       throw new UserError(
-        `Downloaded phpstan.phar is incomplete or corrupt (${cached}).\n` +
-          'Delete it and re-run, or set WOOCRAFT_PHPSTAN_PHAR to a good copy.',
+        `Downloaded phpstan.phar doesn't report itself as ${version} (or is corrupt): ${cached}.\n` +
+          'Delete it and re-run, check "phpstanVersion" in woocraft.json is a real release, or set\n' +
+          'WOOCRAFT_PHPSTAN_PHAR to a good copy.',
       );
     }
   }
@@ -272,14 +283,16 @@ function place(from: string, to: string): void {
   chmodSync(to, 0o755);
 }
 
-function isValidPhar(path: string): boolean {
-  if (!existsSync(path)) return false;
+// The version a phpstan.phar actually reports itself as, or null if it's
+// missing/corrupt — used to tell "already the version we want" apart
+// from "some other version is sitting here", since a stale phar is still
+// a structurally valid one.
+function pharVersion(path: string): string | null {
+  if (!existsSync(path)) return null;
   try {
-    // A truncated phar fails to parse; --version is cheap and definitive.
-    capture('php', [path, '--version']);
-    return true;
+    return capture('php', [path, '--version']).match(/(\d+\.\d+\.\d+)/)?.[1] ?? null;
   } catch {
-    return false;
+    return null;
   }
 }
 

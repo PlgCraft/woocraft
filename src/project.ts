@@ -15,11 +15,26 @@ export type Project = {
   /** option / hook prefix, e.g. coupon_wizard */
   optionPrefix: string;
   textDomain: string;
+  description: string;
+  /** the current, official version — the last entry in woocraft.json's `versions`, if set */
+  version: string;
   requiresPHP: string;
   requiresWP: string;
   requiresWC: string;
   phpstanLevel: string;
+  phpstanVersion: string;
 };
+
+// The PHPStan release woocraft installs when a project doesn't pin its
+// own in woocraft.json, and what `woocraft new` offers as the default
+// when it asks.
+export const DEFAULT_PHPSTAN_VERSION = '2.2.12';
+
+// The QIT tests `woocraft qit` / `woocraft build` run when woocraft.json
+// doesn't say otherwise. An explicit `"tests": []` in woocraft.json is
+// different from leaving `tests` out entirely — it means "run none of
+// them", not "use the default list" (see cmd/qit.ts).
+export const DEFAULT_QIT_TESTS = ['security', 'phpstan', 'phpcompatibility', 'plugin-check', 'activation'];
 
 // How this project reaches its local WordPress: a plain filesystem path,
 // or a DevKinsta site. Both get the same files mirrored into them, but
@@ -48,10 +63,20 @@ export type WoocraftJson = {
   slug?: string;
   namespace?: string;
   constantPrefix?: string;
+  description?: string;
+  // An ordered log of releases: version -> one-line changelog note, e.g.
+  // { "0.1.0": "Initial release", "0.2.0": "Add coupon stacking" }. The
+  // *last* entry is the current, official version — the one written into
+  // the plugin header, package.json, and readme.txt's Stable tag. Adding
+  // a new entry and re-running deploy/build is how you cut a release;
+  // every entry becomes (or stays, if already there) a changelog.txt and
+  // readme.txt changelog entry.
+  versions?: Record<string, string>;
   requiresPHP?: string;
   requiresWP?: string;
   requiresWC?: string;
   phpstanLevel?: string | number;
+  phpstanVersion?: string;
   qit?: QitConfig;
   wpTarget?: WpTargetSetting;
 };
@@ -119,6 +144,9 @@ function build(root: string, pluginFile: string): Project {
     header.match(/define\(\s*['"]([A-Z0-9_]+)_(?:VERSION|FILE|PATH)['"]/)?.[1] ??
     constantCase(slug);
 
+  const versionKeys = overrides.versions ? Object.keys(overrides.versions) : [];
+  const officialVersion = versionKeys.length > 0 ? versionKeys[versionKeys.length - 1] : undefined;
+
   return {
     root,
     pluginFile,
@@ -127,10 +155,13 @@ function build(root: string, pluginFile: string): Project {
     constantPrefix,
     optionPrefix: snakeCase(slug),
     textDomain: field('Text Domain') ?? slug,
+    description: overrides.description ?? field('Description') ?? '',
+    version: officialVersion ?? field('Version') ?? '0.1.0',
     requiresPHP: overrides.requiresPHP ?? field('Requires PHP') ?? '7.4',
     requiresWP: overrides.requiresWP ?? field('Requires at least') ?? '6.3',
     requiresWC: overrides.requiresWC ?? field('WC requires at least') ?? '8.5',
     phpstanLevel: String(overrides.phpstanLevel ?? 5),
+    phpstanVersion: overrides.phpstanVersion ?? DEFAULT_PHPSTAN_VERSION,
   };
 }
 
@@ -179,9 +210,11 @@ export function rememberWpTarget(root: string, target: WpTargetSetting): void {
   updateProjectConfig(root, { wpTarget: target });
 }
 
-const STRING_FIELDS = ['slug', 'namespace', 'constantPrefix', 'requiresPHP', 'requiresWP', 'requiresWC'] as const;
-const KNOWN_TOP_KEYS = [...STRING_FIELDS, 'phpstanLevel', 'qit', 'wpTarget'];
+const STRING_FIELDS = ['slug', 'namespace', 'constantPrefix', 'description', 'requiresPHP', 'requiresWP', 'requiresWC'] as const;
+const KNOWN_TOP_KEYS = [...STRING_FIELDS, 'phpstanLevel', 'phpstanVersion', 'versions', 'qit', 'wpTarget'];
 const KNOWN_QIT_KEYS = ['sut', 'tests', 'args'];
+const PHPSTAN_VERSION_RE = /^\d+\.\d+\.\d+$/;
+const PLAIN_INTEGER_KEY_RE = /^(0|[1-9]\d*)$/;
 
 // Checks woocraft.json's shape field by field and collects every problem
 // found, so a mistake shows up as one clear list instead of you fixing
@@ -210,6 +243,21 @@ function validateWoocraftJson(raw: unknown): WoocraftJson {
     } else {
       result.phpstanLevel = obj.phpstanLevel;
     }
+  }
+
+  if (obj.phpstanVersion !== undefined) {
+    if (typeof obj.phpstanVersion !== 'string' || !PHPSTAN_VERSION_RE.test(obj.phpstanVersion)) {
+      errors.push(
+        `"phpstanVersion" should be a PHPStan release number like "2.2.12" (see ` +
+          `https://github.com/phpstan/phpstan/releases), but it's ${describe(obj.phpstanVersion)}.`,
+      );
+    } else {
+      result.phpstanVersion = obj.phpstanVersion;
+    }
+  }
+
+  if (obj.versions !== undefined) {
+    result.versions = validateVersions(obj.versions, errors);
   }
 
   if (obj.qit !== undefined) {
@@ -262,6 +310,37 @@ function validateQit(value: unknown, errors: string[]): QitConfig | undefined {
   }
 
   return result;
+}
+
+// "versions" is order-sensitive — the last key is the official version —
+// so a key that looks like a plain array index (e.g. "1" rather than
+// "1.0") would silently jump to the front in JS's own key ordering
+// rules, breaking that. Real version strings never look like that, so
+// this is flagged rather than left to bite someone later.
+function validateVersions(value: unknown, errors: string[]): Record<string, string> | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    errors.push(
+      `"versions" should be an object mapping version to changelog note (like { "0.1.0": "Initial release" }), but it's ${describe(value)}.`,
+    );
+    return undefined;
+  }
+  const versions = value as Record<string, unknown>;
+  const result: Record<string, string> = {};
+  let ok = true;
+
+  for (const [version, note] of Object.entries(versions)) {
+    if (PLAIN_INTEGER_KEY_RE.test(version)) {
+      errors.push(`"versions" key "${version}" is a plain number — use a real version string, like "${version}.0.0".`);
+      ok = false;
+    } else if (typeof note !== 'string') {
+      errors.push(`"versions.${version}" should be a one-line changelog note, but it's ${describe(note)}.`);
+      ok = false;
+    } else {
+      result[version] = note;
+    }
+  }
+
+  return ok ? result : undefined;
 }
 
 function validateWpTarget(value: unknown, errors: string[]): WpTargetSetting | undefined {

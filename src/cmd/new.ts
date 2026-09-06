@@ -4,7 +4,7 @@ import kleur from 'kleur';
 import prompts from 'prompts';
 
 import { UserError } from '../exec.js';
-import { rememberWpTarget } from '../project.js';
+import { DEFAULT_PHPSTAN_VERSION, rememberWpTarget } from '../project.js';
 import { consoleReporter } from '../report.js';
 import { scaffoldProject, setupProject } from '../scaffold/scaffold.js';
 import type { Answers } from '../scaffold/tokens.js';
@@ -33,6 +33,7 @@ const DEFAULTS = {
   requiresWC: '8.5',
   wpTestedUpTo: '7.1',
   wcTestedUpTo: '11.0',
+  phpstanVersion: DEFAULT_PHPSTAN_VERSION,
 } as const;
 
 const NAME_TOO_SHORT =
@@ -170,6 +171,14 @@ export async function collectAnswers(yes: boolean, dirArg?: string): Promise<Ans
         message: 'Requires WooCommerce',
         initial: DEFAULTS.requiresWC,
       },
+      {
+        type: 'text',
+        name: 'phpstanVersion',
+        message: 'PHPStan version',
+        initial: DEFAULTS.phpstanVersion,
+        validate: (v: string) =>
+          /^\d+\.\d+\.\d+$/.test(v) ? true : 'A release number like 2.2.12 (see github.com/phpstan/phpstan/releases)',
+      },
     ],
     { onCancel },
   );
@@ -192,6 +201,7 @@ export async function collectAnswers(yes: boolean, dirArg?: string): Promise<Ans
     requiresWC: a.requiresWC,
     wpTestedUpTo: DEFAULTS.wpTestedUpTo,
     wcTestedUpTo: DEFAULTS.wcTestedUpTo,
+    phpstanVersion: a.phpstanVersion,
   };
 }
 
@@ -217,6 +227,7 @@ function answersFromDefaults(seed: string | undefined, fromSeed: string | undefi
     requiresWC: DEFAULTS.requiresWC,
     wpTestedUpTo: DEFAULTS.wpTestedUpTo,
     wcTestedUpTo: DEFAULTS.wcTestedUpTo,
+    phpstanVersion: DEFAULTS.phpstanVersion,
   };
 }
 

@@ -1,5 +1,19 @@
 {
+    "description": "{{descriptionJson}}",
+    "slug": "{{slug}}",
+    "namespace": "{{namespaceJson}}",
+    "constantPrefix": "{{constant}}",
+    "requiresPHP": "{{requiresPHP}}",
+    "requiresWP": "{{requiresWP}}",
+    "requiresWC": "{{requiresWC}}",
+    "phpstanLevel": 5,
+    "phpstanVersion": "{{phpstanVersion}}",
+    "versions": {
+        "0.1.0": "Initial release"
+    },
     "qit": {
-        "sut": "{{slug}}"
+        "sut": "{{slug}}",
+        "tests": {{qitDefaultTestsJson}},
+        "args": []
     }
 }

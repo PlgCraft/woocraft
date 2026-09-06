@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { camelCase, constantCase, slugify, snakeCase } from '../strings.js';
+import { DEFAULT_QIT_TESTS } from '../project.js';
 import type { WpEnv } from '../project.js';
+import { camelCase, constantCase, slugify, snakeCase } from '../strings.js';
 
 // The prompted (or defaulted) answers that describe the extension being
 // scaffolded — buildTokens() below is what turns these into the flat
@@ -21,6 +22,7 @@ export type Answers = {
   requiresWC: string;
   wpTestedUpTo: string;
   wcTestedUpTo: string;
+  phpstanVersion: string;
   /** the local WordPress install to deploy into, if given at scaffold time */
   wpPath?: string;
   wpEnv?: WpEnv;
@@ -57,6 +59,7 @@ export function buildTokens(answers: Answers): Tokens {
     requiresWC,
     wpTestedUpTo,
     wcTestedUpTo,
+    phpstanVersion,
   } = answers;
 
   const now = new Date();
@@ -94,6 +97,8 @@ export function buildTokens(answers: Answers): Tokens {
     requiresWC,
     wpTestedUpTo,
     wcTestedUpTo,
+    phpstanVersion,
+    qitDefaultTestsJson: JSON.stringify(DEFAULT_QIT_TESTS),
 
     date: now.toISOString().slice(0, 10),
     year: String(now.getFullYear()),

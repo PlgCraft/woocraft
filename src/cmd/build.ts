@@ -1,6 +1,7 @@
 import { buildAdminUi, composerNoDev } from '../commands.js';
 import { resolveProject } from '../project.js';
 import { consoleReporter } from '../report.js';
+import { syncProjectFiles } from '../sync.js';
 import { packagePlugin, syncPlugin } from '../wp/deploy.js';
 import { activateInWordPress, pluginCheckInWordPress, resolveWordPress } from '../wp/wordpress.js';
 import { parseDeployOptions } from './_common.js';
@@ -17,6 +18,7 @@ import { runQitChecks } from './qit.js';
 export async function cmdBuild(args: string[]): Promise<void> {
   const { path } = parseDeployOptions(args);
   const project = resolveProject();
+  syncProjectFiles(project, consoleReporter);
 
   const target = await resolveWordPress(project, {
     path,
