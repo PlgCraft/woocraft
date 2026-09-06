@@ -30,8 +30,8 @@ npx woocraft new my-extension
 ```
 
 That's it. `woocraft` gets added to the generated project's own
-`package.json`, so from then on every command runs through `npm run` or
-`npx woocraft` from inside the project.
+`package.json`, so from then on every command runs through `npm run`
+from inside the project.
 
 ## Quick start
 
@@ -67,29 +67,57 @@ src/                      PSR-4 PHP, autoloaded by Composer
   Http/Routes/Hello.php    A starter REST route
   Admin/                   The admin screen: PHP menu page + a React UI
 package.json              One file, one `npm install`, all the scripts
-woocraft.json             woocraft's own config: WordPress target, QIT setup
+woocraft.json             woocraft's own config — see below
 ```
 
 The admin screen is written in React with Vite and Tailwind, but none of
 that source ships in the plugin. Only the built output does. The plugin
 your users install is plain PHP and compiled assets, nothing else.
 
+## Configuration
+
+`woocraft.json` at the project root is the one file woocraft reads and
+writes. `npx woocraft new` fills it in with real values, ready to edit:
+
+```json
+{
+  "description": "One-line summary shown in package.json, composer.json, and readme.txt",
+  "requiresPHP": "7.4",
+  "requiresWP": "6.3",
+  "requiresWC": "8.5",
+  "phpstanVersion": "2.2.12",
+  "versions": {
+    "0.1.0": "Initial release"
+  },
+  "qit": { "sut": "my-extension", "tests": [], "args": [] },
+  "wpTarget": { "path": "/path/to/wordpress", "env": "direct" }
+}
+```
+
+Edit `description`, `requiresPHP`, `requiresWP`, or `requiresWC` and the
+next `npm run deploy`/`build` writes it into the plugin header,
+`composer.json`, `package.json`, and `readme.txt` for you. Add an entry
+to `versions` to cut a release — the **last** entry is the official
+version, and it updates `changelog.txt` and `readme.txt`'s changelog too.
+`phpstanVersion` pins which PHPStan release gets installed. See
+[COMMANDS.md](./COMMANDS.md#woocraftjson) for the full schema, including
+`qit` and `wpTarget`.
+
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `woocraft new [directory]` | Scaffold a new extension |
-| `woocraft deploy` | Check, build, and deploy into your local WordPress |
-| `woocraft lint` / `lint:fix` | PHP_CodeSniffer, with an auto-fix mode |
-| `woocraft stan` | PHPStan, configured with WordPress and WooCommerce stubs |
-| `woocraft check` | `lint` + `stan` |
-| `woocraft pot` | Regenerate the plugin's translation template |
-| `woocraft build` | Deploy, verify, package a release zip, then QIT-test it |
-| `woocraft qit` | Run WooCommerce Marketplace quality tests against that zip |
+| `npx woocraft new [directory]` | Scaffold a new extension |
+| `npm run deploy` | Check, build, and deploy into your local WordPress |
+| `npm run lint` / `lint:fix` | PHP_CodeSniffer, with an auto-fix mode |
+| `npm run stan` | PHPStan, configured with WordPress and WooCommerce stubs |
+| `npm run check` | `lint` + `stan` |
+| `npm run pot` | Regenerate the plugin's translation template |
+| `npm run build` | Deploy, verify, package a release zip, then QIT-test it |
+| `npm run qit` | Run WooCommerce Marketplace quality tests against that zip |
 
-See [COMMANDS.md](./COMMANDS.md) for the full reference: every flag, what
-each command actually does step by step, and how to configure `qit` and
-`woocraft.json`.
+See [COMMANDS.md](./COMMANDS.md) for the full reference: every flag and
+what each command actually does step by step.
 
 ## How the toolchain works
 
